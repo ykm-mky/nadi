@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#06070a">
+  <meta name="description" content="The evening our story began. September 4, 2026.">
+  <title>The Night We Met — Nathalie</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --night: #06070a;
+  --warm: #dec09a;
+  --ivory: #f7eee0;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+* { box-sizing: border-box; }
+html,body { margin: 0; min-height: 100%; }
+body { background: var(--night); color: var(--ivory); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+button { font: inherit; }
+#experience { isolation: isolate; min-height: 100vh; min-height: 100dvh; position: relative; overflow: hidden; }
+.scene { position: absolute; inset: 0; min-height: 100vh; min-height: 100dvh; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1.5s ease, visibility 1.5s; }
+.scene.active { opacity: 1; visibility: visible; pointer-events: auto; }
+.black-scene { display: grid; place-items: center; background: #050506; padding: 28px; }
+.black-scene::before { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,rgba(124,83,62,.10),transparent 53%); }
+.noise { position: absolute; inset:0; pointer-events:none; opacity:.18; z-index:8; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.18'/%3E%3C/svg%3E"); }
+.growing-text { position:relative; margin:0; max-width:1000px; text-align:center; line-height:1.06; font:italic 500 clamp(45px,7vw,92px)/1.12 'Cormorant Garamond', Georgia, serif; letter-spacing:-.025em; }
+.growing-text span { display:block; opacity:0; transform:translateY(26px); transition:opacity 1.15s ease, transform 1.4s var(--ease); }
+.growing-text span:nth-child(2) { margin-top:.14em; color:var(--warm); }
+.scene.active.chapter-revealed .growing-text span { opacity:1; transform:translateY(0); }
+.scene.active.chapter-revealed .growing-text span:nth-child(2) { transition-delay:1.25s; }
+
+.time-scene { display:grid; place-items:center; text-align:center; background:#050506; }
+.timeline-core { position:relative; width:100%; display:flex; flex-direction:column; align-items:center; padding:20px; }
+.year-ghost { position:absolute; font:500 clamp(140px,29vw,440px)/1 'Cormorant Garamond', Georgia, serif; letter-spacing:-.07em; color:rgba(214,184,144,.05); transform:translateY(-5%); user-select:none; }
+.year { position:relative; font:italic 500 clamp(96px,18vw,230px)/1 'Cormorant Garamond', Georgia, serif; letter-spacing:-.06em; color:#f9f2e6; text-shadow:0 0 65px rgba(217,166,101,.16); transition:opacity .12s; font-variant-numeric:lining-nums tabular-nums; }
+.timeline-track { width:min(520px,70vw); height:1px; margin:26px 0 0; background:rgba(232,214,186,.26); position:relative; }
+.timeline-progress { position:absolute; inset:0 auto 0 0; width:0%; background:var(--warm); box-shadow:0 0 17px rgba(230,180,100,.7); transition:width .24s ease; }
+.date-lock { margin-top:24px; min-height:1.6em; font:italic 500 clamp(28px,5vw,44px)/1.1 'Cormorant Garamond', Georgia, serif; color:var(--warm); opacity:0; transform:translateY(10px); transition:opacity .8s ease,transform .9s var(--ease); }
+.time-scene.locked .date-lock { opacity:1; transform:translateY(0); }
+.time-scene.locked .year { color:var(--warm); }
+
+.meeting-scene { background:#0a0e15; overflow:hidden; }
+.evening-image { position:absolute; inset:0; background-image:url('assets/evening.webp'); background-size:cover; background-position:center 45%; filter:brightness(.55) saturate(.82); transform:scale(1.16); transition:transform 13s linear, filter 2s ease; }
+.meeting-scene.active .evening-image { transform:scale(1.025); }
+.meeting-scene::before { content:''; position:absolute; inset:0; z-index:1; background:linear-gradient(90deg,rgba(3,7,13,.89) 0%,rgba(3,8,13,.75) 34%,rgba(4,10,17,.30) 70%,rgba(4,10,17,.18) 100%),linear-gradient(0deg,rgba(3,5,9,.78),transparent 37%,rgba(3,5,9,.15)); }
+.meeting-scene::after { content:''; position:absolute; inset:0; z-index:2; pointer-events:none; background:radial-gradient(ellipse at 55% 44%,transparent 26%,rgba(0,0,0,.30) 83%); }
+
+.meeting-composition { position:relative; width:min(1360px,100%); height:100vh; height:100dvh; margin:auto; z-index:4; display:flex; align-items:center; justify-content:space-between; padding:clamp(36px,7vw,112px); gap:clamp(22px,5vw,90px); }
+.meeting-copy { position:relative; z-index:5; max-width:600px; flex:1 1 45%; padding-top:clamp(40px,4vh,80px); transform:translateY(35px); opacity:0; transition:opacity 1.3s 1.5s ease, transform 1.7s 1.5s var(--ease); }
+.meeting-scene.active .meeting-copy { opacity:1; transform:translateY(0); }
+.event-ticket { display:inline-flex; align-items:center; justify-content:center; width:clamp(76px,8vw,105px); height:clamp(86px,9vw,117px); padding:12px 10px; margin-bottom:clamp(24px,4vh,44px); background:rgba(251,246,228,.94); box-shadow:0 7px 30px rgba(0,0,0,.25),inset 0 0 0 1px rgba(100,76,66,.14); transform:rotate(-5deg); }
+.event-ticket img { display:block; width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply; }
+.meeting-date { margin:0 0 22px; font:500 clamp(11px,1.2vw,14px)/1.4 'DM Sans',sans-serif; color:#e5c79c; letter-spacing:.28em; text-transform:uppercase; }
+.meeting-title { margin:0; color:#fff9ed; font:italic 500 clamp(53px,6.1vw,90px)/1.0 'Cormorant Garamond',Georgia,serif; letter-spacing:-.034em; text-wrap:balance; text-shadow:0 5px 30px rgba(0,0,0,.38); }
+.meeting-title em { color:#edcda1; font-weight:500; }
+.meeting-note { margin:clamp(18px,3vh,31px) 0 0; max-width:470px; font:italic 500 clamp(22px,2.3vw,31px)/1.22 'Cormorant Garamond',Georgia,serif; color:rgba(255,242,221,.84); }
+.meeting-line { width:65px; height:1px; margin-top:28px; background:rgba(233,203,160,.65); }
+.exit-curtain { position:fixed; inset:0; z-index:30; background:#050506; pointer-events:none; opacity:0; transition:opacity 1.8s ease; }
+.exit-curtain.closing { opacity:1; }
+
+.sculpture-frame { position:relative; width:min(37vw,425px); height:min(76vh,690px); flex:0 0 auto; transform:translate(0,70px) rotate(4deg) scale(.9); opacity:0; transition:transform 2.15s .5s var(--ease),opacity 1.8s .5s ease; box-shadow:0 35px 85px rgba(0,0,0,.52),0 0 0 1px rgba(253,244,226,.16); }
+.meeting-scene.active .sculpture-frame { opacity:1; transform:translateY(0) rotate(1.5deg) scale(1); }
+.sculpture-photo { position:absolute; inset:8px; width:calc(100% - 16px); height:calc(100% - 16px); object-fit:cover; object-position:50% 35%; filter:brightness(.69) saturate(.62) contrast(1.08); }
+.sculpture-frame::before { content:''; position:absolute; inset:0; z-index:1; pointer-events:none; border:8px solid #e9dcca; opacity:.96; }
+.sculpture-frame::after { content:''; position:absolute; inset:8px; z-index:2; pointer-events:none; background:linear-gradient(180deg,rgba(13,21,41,.20),rgba(5,9,15,.24) 60%,rgba(5,9,15,.54)); }
+.sculpture-glow { position:absolute; inset:-30px; z-index:-1; background:radial-gradient(ellipse at center,rgba(239,179,101,.12),transparent 65%); filter:blur(16px); }
+
+/* Small glints recall the actual string lights in the evening photograph. */
+.light-particle { position:absolute; z-index:3; width:3px; height:3px; background:#ffd9a2; border-radius:50%; box-shadow:0 0 13px 4px rgba(255,201,129,.33); animation:twinkle 3.3s ease-in-out infinite alternate; pointer-events:none; }
+.light-particle.a { left:14%; top:12%; animation-delay:-1s; }
+.light-particle.b { left:37%; top:22%; animation-delay:-2.2s; }
+.light-particle.c { right:14%; top:17%; animation-delay:-.3s; }
+@keyframes twinkle { to { opacity:.36; transform:scale(.6); } }
+
+@media(max-width:740px) {
+ .growing-text { font-size:clamp(42px,10vw,66px); }
+ .meeting-composition { padding:20px 24px 35px; flex-direction:column-reverse; justify-content:center; gap:22px; height:100vh; height:100dvh; }
+ .meeting-scene::before { background:linear-gradient(0deg,rgba(3,6,12,.92),rgba(4,8,13,.50) 52%,rgba(3,6,12,.35)); }
+ .evening-image { background-position:61% center; }
+ .sculpture-frame { width:min(46vw,240px); height:min(44vh,390px); align-self:flex-end; margin-right:5%; }
+ .meeting-copy { flex:0 0 auto; width:100%; max-width:520px; padding:0; transform:translateY(20px); }
+ .event-ticket { width:67px; height:75px; padding:8px; margin-bottom:12px; }
+ .meeting-date { margin-bottom:12px; letter-spacing:.20em; font-size:11px; }
+ .meeting-title { font-size:clamp(46px,10.5vw,68px); }
+ .meeting-note { font-size:clamp(22px,5vw,28px); margin-top:16px; }
+ .meeting-line { margin-top:16px; }
+}
+@media(max-width:420px) {
+ .sculpture-frame { width:43vw; height:35vh; margin-right:8%; }
+ .meeting-composition { gap:16px; padding:16px 22px 28px; }
+ .meeting-title { font-size:clamp(44px,11.7vw,57px); }
+ .event-ticket { width:58px; height:65px; }
+}
+@media(max-height:610px) and (min-width:741px) {
+ .sculpture-frame { height:70vh; }
+ .meeting-copy { padding-top:0; }
+ .meeting-title { font-size:clamp(45px,5.5vw,69px); }
+ .event-ticket { width:75px; height:82px; margin-bottom:16px; }
+}
+@media(prefers-reduced-motion: reduce) {
+ *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+ .growing-text span,.meeting-copy,.sculpture-frame { opacity:1 !important; transform:none !important; }
+}
+</style>
+  <script>
+    // Only direct GitHub Pages visits are redirected; iframe chapters work normally.
+    if (window.top === window.self && location.hostname.endsWith('.github.io')) {
+      location.replace('./');
+    }
+  </script>
+</head>
+<body>
+<main id="experience">
+  <section class="scene black-scene active" id="growingScene" aria-label="The years go by">
+    <h1 class="growing-text">
+      <span>That little girl grew up…</span>
+      <span>and became a beautiful young woman.</span>
+    </h1>
+  </section>
+
+  <section class="scene time-scene" id="timeScene" aria-label="Traveling forward to September 4, 2026" aria-hidden="true">
+    <div class="timeline-core">
+      <span class="year-ghost" id="yearGhost" aria-hidden="true">2000</span>
+      <span class="year" id="year" aria-live="off">2000</span>
+      <div class="timeline-track" aria-hidden="true"><span class="timeline-progress" id="timelineProgress"></span></div>
+      <p class="date-lock" id="dateLock">September 4, 2026</p>
+    </div>
+  </section>
+
+  <section class="scene meeting-scene" id="meetingScene" aria-label="The night we met" aria-hidden="true">
+    <div class="evening-image" role="img" aria-label="A lakeside gathering under string lights at dusk"></div>
+    <i class="light-particle a" aria-hidden="true"></i>
+    <i class="light-particle b" aria-hidden="true"></i>
+    <i class="light-particle c" aria-hidden="true"></i>
+    <div class="meeting-composition">
+      <div class="meeting-copy">
+        <div class="event-ticket"><img src="assets/event-logo.webp" alt="The emblem of the event where we met"></div>
+        <p class="meeting-date">September 4, 2026</p>
+        <h2 class="meeting-title">And then,<br><em>there was you.</em></h2>
+        <p class="meeting-note">That evening, beneath this sculpture, our paths crossed for the first time.</p>
+        <div class="meeting-line" aria-hidden="true"></div>
+      </div>
+      <div class="sculpture-frame" aria-label="The sculpture beneath which we first met">
+        <img class="sculpture-photo" src="assets/sculpture.webp" alt="The geometric metal sculpture where we met" fetchpriority="high">
+        <span class="sculpture-glow" aria-hidden="true"></span>
+      </div>
+    </div>
+  </section>
+  <div class="noise" aria-hidden="true"></div>
+  <div class="exit-curtain" id="exitCurtain" aria-hidden="true"></div>
+</main>
+<script>
+(() => {
+  const growing = document.getElementById('growingScene');
+  const time = document.getElementById('timeScene');
+  const meeting = document.getElementById('meetingScene');
+  const year = document.getElementById('year');
+  const ghost = document.getElementById('yearGhost');
+  const progress = document.getElementById('timelineProgress');
+  const exitCurtain = document.getElementById('exitCurtain');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const stages = [growing,time,meeting];
+  const show = scene => {
+    for (const s of stages) {
+      const active = s === scene;
+      s.classList.toggle('active',active);
+      s.setAttribute('aria-hidden',String(!active));
+    }
+  };
+  let timers = [];
+  const after = (ms, fn) => timers.push(setTimeout(fn,ms));
+  function start() {
+    timers.forEach(clearTimeout);
+    timers=[];
+    show(growing);
+    // Enter the new page on black, then gently reveal the first sentence.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      after(reduced ? 0 : 220, () => growing.classList.add('chapter-revealed'));
+    }));
+    // The chapter can also be opened directly for review: meeting.html?scene=meeting
+    if (new URLSearchParams(location.search).get('scene')==='meeting') {
+      show(meeting);
+      return;
+    }
+    after(reduced?1400:4500,() => {
+      show(time);
+      const years = [2000,2002,2005,2008,2011,2014,2017,2020,2022,2024,2025,2026];
+      years.forEach((y,i)=>after((reduced?100:145)*i,()=>{
+        year.textContent=String(y);
+        ghost.textContent=String(y);
+        progress.style.width=`${(i+1)*100/years.length}%`;
+      }));
+      const end = years.length*(reduced?100:145)+200;
+      after(end,()=>time.classList.add('locked'));
+      after(end+(reduced?800:2200),()=>{
+        show(meeting);
+        // Leave the meeting photograph on-screen long enough to appreciate it.
+        after(reduced ? 3500 : 10500, () => {
+          exitCurtain.classList.add('closing');
+          window.parent.postMessage({nadiStory:true,action:'anticipate',page:'model.html'}, '*');
+          after(reduced ? 50 : 1900, () => { window.location.assign('model.html'); });
+        });
+      });
+    });
+  }
+  start();
+})();
+</script>
+  <script>
+    // Music controls stay in index.html, so the soundtrack can survive chapter changes.
+    (() => {
+      if (window.parent === window) return;
+      const send = (action, extra={}) => {
+        try { window.parent.postMessage({nadiStory:true, action, ...extra}, '*'); } catch (_) {}
+      };
+      const page = location.pathname.split('/').pop();
+      send('ready', {page});
+      document.addEventListener('click', e => {
+        if (e.target.closest('#openEnvelope, #tapLabel')) send('open-letter');
+      }, true);
+      for (const action of ['play','pause','ended','volumechange']) {
+        document.addEventListener(action, e => {
+          if (e.target.tagName === 'VIDEO') {
+            const v = e.target;
+            send('video', {event:action, videoId:v.id, audible:!v.muted && v.volume>0});
+          }
+        }, true);
+      }
+    })();
+  </script>
+</body>
+</html>

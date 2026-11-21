@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#141820">
+  <meta name="description" content="A birthday journey for Nathalie Celine Domnick.">
+  <title>For Nathalie Celine Domnick</title>
+  <style>
+    *,*::before,*::after { box-sizing: border-box; }
+    html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#141820; }
+    .story {
+      position:fixed; inset:0; width:100%; height:100%;
+      border:0; background:#141820; display:block;
+    }
+    .music-toggle {
+      position:fixed; z-index:1000;
+      right:max(14px,env(safe-area-inset-right));
+      top:max(14px,env(safe-area-inset-top));
+      width:42px; height:42px; display:grid; place-items:center;
+      border:1px solid rgba(217,186,140,.4); border-radius:50%;
+      color:#ead7b4; background:rgba(17,19,24,.61);
+      box-shadow:0 8px 23px rgba(0,0,0,.2);
+      backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      cursor:pointer; opacity:0; visibility:hidden; pointer-events:none;
+      transition:opacity .65s ease,background .3s ease, border-color .3s ease,visibility .65s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .music-toggle.visible { opacity:1; visibility:visible; pointer-events:auto; }
+    .music-toggle:hover { background:rgba(45,38,36,.85); border-color:rgba(235,210,176,.7); }
+    .music-toggle:focus-visible { outline:2px solid #f3dfbc; outline-offset:4px; }
+    .music-toggle svg { display:block; width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+    .music-toggle .sound-off { display:none; }
+    .music-toggle[data-state="off"] .sound-on,
+    .music-toggle[data-state="missing"] .sound-on { display:none; }
+    .music-toggle[data-state="off"] .sound-off,
+    .music-toggle[data-state="missing"] .sound-off { display:block; }
+    .music-toggle[data-state="missing"] { border-color:rgba(217,186,140,.22); }
+    .music-hint {
+      position:fixed; z-index:999; right:max(14px,env(safe-area-inset-right));
+      top:calc(max(14px,env(safe-area-inset-top)) + 50px);
+      max-width:min(250px,80vw); padding:9px 12px;
+      color:#f7e9d3; background:rgba(20,22,27,.92); border:1px solid rgba(217,186,140,.27);
+      border-radius:5px; font:11px/1.45 Georgia,serif; text-align:right;
+      box-shadow:0 13px 32px rgba(0,0,0,.25);
+      opacity:0; visibility:hidden; pointer-events:none; transition:opacity .3s ease,visibility .3s;
+    }
+    .music-hint.visible { opacity:1; visibility:visible; }
+    @media(prefers-reduced-motion:reduce) {
+      .music-toggle,.music-hint { transition:none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- All chapters navigate inside this iframe, allowing the music to play without restarting. -->
+  <iframe class="story" id="story" title="Nathalie's birthday journey" src="letter.html" allow="autoplay" referrerpolicy="same-origin"></iframe>
+  <!-- Persistent audio players allow gentle changes without interrupting the chapters. -->
+  <audio id="soundtrackA" src="assets/letter.mp3" preload="auto" loop></audio>
+  <audio id="soundtrackB" preload="none" loop></audio>
+  <button class="music-toggle" id="musicToggle" type="button" data-state="off" aria-label="Play background music" title="Play background music">
+    <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l12-3v12"/><ellipse cx="6" cy="18" rx="3" ry="2.2"/><ellipse cx="18" cy="15" rx="3" ry="2.2"/></svg>
+    <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l12-3v12"/><ellipse cx="6" cy="18" rx="3" ry="2.2"/><ellipse cx="18" cy="15" rx="3" ry="2.2"/><path d="M3 3 21 21"/></svg>
+  </button>
+  <div class="music-hint" id="musicHint" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      const frame = document.getElementById('story');
+      const toggle = document.getElementById('musicToggle');
+      const hint = document.getElementById('musicHint');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Keep these two entries identical: Candice -> Gallery must NOT restart the music.
+      // Memories uses the journey theme when the viewer returns to the chapter menu.
+      const chapterMusic = {
+        'letter.html':   {file: 'letter.mp3',           volume: .115},
+        'journey.html':  {file: 'journey-memories.mp3', volume: .235},
+        'meeting.html':  {file: 'meeting.mp3',          volume: .225},
+        'model.html':    {file: 'model.mp3',            volume: .220, startAt: 10},
+        'suspect.html':  {file: 'suspect.mp3',          volume: .225, startAt: 10},
+        'cycle.html':    {file: 'cycle.mp3',            volume: .215},
+        'candice.html':  {file: 'candice-gallery.mp3',  volume: .225},
+        'gallery.html':  {file: 'candice-gallery.mp3',  volume: .225},
+        'finale.html':   null, // Absolutely no background audio during Kerem's video.
+        'memories.html':{file: 'journey-memories.mp3', volume: .215}
+      };
+
+      const decks = [
+        {audio:document.getElementById('soundtrackA'), file:'letter.mp3', weight:0, volume:.115},
+        {audio:document.getElementById('soundtrackB'), file:null, weight:0, volume:0}
+      ];
+      let active = null;
+      let page = 'letter.html';
+      let letterOpened = false;
+      let wanted = true; // Start on envelope interaction, never before it.
+      let unlocked = false;
+      let video = null;
+      let relayedVideo = null;
+      let mix = 1;
+      let mixRAF = 0;
+      let fadeRAF = 0;
+      let fadeToken = 0;
+      let hintTimer = 0;
+      let trackToken = 0;
+      let announcedPage = null;
+      let plannedPage = null;
+      const CROSSFADE_MS = 4200; // A gentle overlap between songs, not a hard cut.
+      const FINAL_FADE_MS = 2600;
+      const VIDEO_DUCK_MS = 1150;
+      // Prebuffer the next chapter's song in the idle deck. This is particularly
+      // important on GitHub Pages where a cold MP3 fetch can delay audio onset.
+      const nextChapter = {
+        'letter.html':'journey.html', 'journey.html':'meeting.html',
+        'meeting.html':'model.html', 'model.html':'suspect.html',
+        'suspect.html':'cycle.html', 'cycle.html':'candice.html',
+        'candice.html':'gallery.html', 'gallery.html':'finale.html',
+        'finale.html':'memories.html'
+      };
+      function primeNextTrack() {
+        if(!wanted || !unlocked || !active || isSilentPage()) return;
+        const spec = chapterMusic[nextChapter[page]];
+        if(!spec || spec.file===active.file) return;
+        const spare = decks.find(d=>d!==active);
+        if(!spare || spare.weight > .005) return;
+        if(spare.file!==spec.file) {
+          spare.audio.pause();
+          spare.audio.src='assets/'+spec.file;
+          spare.audio.preload='auto';
+          spare.audio.load();
+          spare.file=spec.file;
+        }
+        spare.volume=spec.volume;
+        spare.weight=0;
+      }
+
+
+      decks.forEach(d => {
+        d.audio.volume = 0;
+        d.audio.loop = true;
+        d.audio.addEventListener('error', () => {
+          if (d === active && wanted) showHint('Soundtrack unavailable. Check the MP3 files in assets.');
+          updateButton();
+        });
+      });
+
+      const clamp = x => Math.max(0,Math.min(1,x));
+      function showHint(message) {
+        hint.textContent = message;
+        hint.classList.add('visible');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hint.classList.remove('visible'),4200);
+      }
+      function updateButton() {
+        const silent = page === 'finale.html' || (page === 'letter.html' && !letterOpened);
+        toggle.classList.toggle('visible', !silent);
+        const on = wanted && active && !active.audio.paused && !silent;
+        toggle.dataset.state = on ? 'on' : 'off';
+        toggle.title = on ? 'Pause background music' : 'Play background music';
+        toggle.setAttribute('aria-label',toggle.title);
+      }
+      function applyVolumes() {
+        decks.forEach(d => {d.audio.volume = clamp(d.weight*d.volume*mix);});
+      }
+      function setMix(target) {
+        cancelAnimationFrame(mixRAF);
+        target=clamp(target);
+        const start=mix, began=performance.now();
+        if(reduced){mix=target;applyVolumes();return;}
+        function frameStep(now){
+          const t=clamp((now-began)/VIDEO_DUCK_MS);
+          const eased=t*t*(3-2*t);
+          mix=start+(target-start)*eased;
+          applyVolumes();
+          if(t<1)mixRAF=requestAnimationFrame(frameStep);
+        }
+        mixRAF=requestAnimationFrame(frameStep);
+      }
+      function audibleVideoPlaying() {
+        if(video && !video.paused && !video.ended) {
+          return !video.muted && video.volume > 0;
+        }
+        return Boolean(relayedVideo && relayedVideo.audible);
+      }
+      function updateMix() {
+        // Quiet soundtrack under audible videos; restore when playback ends.
+        setMix(audibleVideoPlaying() ? .16 : 1);
+      }
+      function fadeWeights(targets, duration=CROSSFADE_MS, done=()=>{}) {
+        cancelAnimationFrame(fadeRAF);
+        const token=++fadeToken;
+        const from=decks.map(d=>d.weight);
+        const began=performance.now();
+        if(reduced)duration=0;
+        function frameStep(now) {
+          if(token!==fadeToken)return;
+          const t=duration?clamp((now-began)/duration):1;
+          const eased=t*t*(3-2*t);
+          decks.forEach((d,i)=>{ d.weight=from[i]+(targets[i]-from[i])*eased; });
+          applyVolumes();
+          if(t<1){fadeRAF=requestAnimationFrame(frameStep);return;}
+          done();
+        }
+        fadeRAF=requestAnimationFrame(frameStep);
+      }
+      function fadeOutAll(duration=FINAL_FADE_MS) {
+        const token=++trackToken;
+        fadeWeights([0,0], duration, () => {
+          if(token!==trackToken)return;
+          decks.forEach(d=>d.audio.pause());
+          active=null;
+          updateButton();
+        });
+      }
+      function isSilentPage() {
+        return page === 'finale.html' || (page === 'letter.html' && !letterOpened);
+      }
+      function currentSpec() { return chapterMusic[page] || null; }
+
+      // Used by pre-transition notices sent as the screen fades to black.
+      // The destination song can begin fading in BEFORE the next page appears.
+      function anticipatePage(nextPage) {
+        if (!(nextPage in chapterMusic) || nextPage === 'letter.html') return;
+        if (plannedPage === nextPage) return;
+        plannedPage = nextPage;
+        const spec = chapterMusic[nextPage];
+        if (!spec) {
+          // Final spoken video gets complete silence, without a sudden cutoff.
+          fadeOutAll(FINAL_FADE_MS);
+        } else if (wanted && unlocked) {
+          switchTrack(spec);
+        }
+      }
+
+      async function waitForMetadata(audio, token) {
+        if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) return true;
+        return new Promise(resolve => {
+          const done = ok => {
+            audio.removeEventListener('loadedmetadata', onReady);
+            audio.removeEventListener('error', onError);
+            clearTimeout(timeout);
+            resolve(ok && token === trackToken);
+          };
+          const onReady = () => done(true);
+          const onError = () => done(false);
+          const timeout = setTimeout(() => done(false), 7000);
+          audio.addEventListener('loadedmetadata', onReady, {once:true});
+          audio.addEventListener('error', onError, {once:true});
+        });
+      }
+
+      async function switchTrack(overrideSpec=null) {
+        const token=++trackToken;
+        const spec=overrideSpec || currentSpec();
+        if(!spec || (!overrideSpec && isSilentPage())) {
+          fadeOutAll(FINAL_FADE_MS);
+          updateButton();
+          return;
+        }
+        if(!wanted || !unlocked) { updateButton(); return; }
+        if(active && active.file===spec.file){
+          // Candice and Gallery share one continuous audio timeline.
+          active.volume=spec.volume;
+          if(active.audio.paused){
+            try{await active.audio.play();}catch(_){showHint('Tap the music icon to start the soundtrack.');}
+          }
+          if(token!==trackToken)return;
+          // Never restart a song or snap a partially completed crossfade.
+          const weights=decks.map(d=>d===active?1:0);
+          fadeWeights(weights, Math.max(2000, CROSSFADE_MS), ()=>{
+            decks.forEach(d=>{if(d!==active)d.audio.pause();});
+            primeNextTrack();
+          });
+          updateButton();
+          return;
+        }
+
+        const incoming=decks.find(d=>d!==active);
+        incoming.audio.pause();
+        // Reuse already downloaded media instead of cancelling an ongoing fetch.
+        if(incoming.file!==spec.file) {
+          incoming.audio.src='assets/'+spec.file;
+          incoming.audio.preload='auto';
+          incoming.audio.load();
+          incoming.file=spec.file;
+        }
+        incoming.volume=spec.volume;
+        incoming.weight=0;
+        applyVolumes();
+
+        // Seek before playback: model.mp3 begins at 00:07, not at 00:00.
+        if(spec.startAt){
+          const ready=await waitForMetadata(incoming.audio,token);
+          if(token!==trackToken)return;
+          if(!ready){
+            showHint('Could not load the soundtrack. Check assets/'+spec.file);
+            return;
+          }
+          try {
+            incoming.audio.currentTime=Math.min(spec.startAt, Math.max(0,(incoming.audio.duration||spec.startAt+1)-0.2));
+          } catch(_) { /* Browser may defer seeking until more bytes are ready. */ }
+        }
+        try {
+          await incoming.audio.play();
+        } catch(_) {
+          if(token===trackToken)showHint('Tap the music icon to start the soundtrack.');
+          return;
+        }
+        if(token!==trackToken || !wanted || (isSilentPage() && !overrideSpec)) {
+          incoming.audio.pause();
+          return;
+        }
+        const old=active;
+        active=incoming;
+        updateButton();
+        // Let the previous song play all the way through the crossfade.
+        fadeWeights(decks.map(d=>d===incoming?1:0),old?CROSSFADE_MS:950,()=>{
+          decks.forEach(d=>{if(d!==active)d.audio.pause();});
+          primeNextTrack();
+        });
+      }
+
+      function setPage(nextPage) {
+        if(!(nextPage in chapterMusic))return;
+        if(announcedPage===nextPage)return;
+        const wasAnticipated = plannedPage === nextPage;
+        plannedPage = null;
+        announcedPage=nextPage;
+        page=nextPage;
+        video=null;
+        relayedVideo=null;
+        updateMix();
+        if(page==='letter.html')letterOpened=false;
+        if(page==='finale.html') {
+          // The final voice message stays entirely free of background music.
+          fadeOutAll(wasAnticipated ? 450 : FINAL_FADE_MS);
+          updateButton();
+          return;
+        }
+        const spec=currentSpec();
+        // Keep the preannounced crossfade running across the iframe navigation.
+        if (!wasAnticipated || (spec && !decks.some(d => d.file===spec.file))) switchTrack();
+        updateButton();
+      }
+      function openLetter() {
+        if(page!=='letter.html')return;
+        if(letterOpened)return;
+        letterOpened=true;
+        unlocked=true; // The actual tap satisfies browser autoplay requirements.
+        updateButton();
+        if(wanted)switchTrack();
+      }
+
+      toggle.addEventListener('click', () => {
+        if(page==='finale.html')return;
+        wanted=!wanted;
+        if(wanted){
+          unlocked=true;
+          if(page==='letter.html')letterOpened=true;
+          switchTrack();
+        } else {
+          fadeWeights([0,0],850,()=>decks.forEach(d=>d.audio.pause()));
+        }
+        updateButton();
+      });
+      window.addEventListener('message',e=>{
+        if(e.source!==frame.contentWindow || !e.data || e.data.nadiStory!==true)return;
+        const data=e.data;
+        if(data.action==='ready')setPage(data.page);
+        if(data.action==='anticipate')anticipatePage(data.page);
+        if(data.action==='open-letter')openLetter();
+        if(data.action==='video'){
+          if(data.event==='play')relayedVideo={id:data.videoId,audible:data.audible};
+          else if(data.event==='volumechange' && relayedVideo && relayedVideo.id===data.videoId)
+            relayedVideo.audible=data.audible;
+          else if((data.event==='pause'||data.event==='ended') && relayedVideo && relayedVideo.id===data.videoId)
+            relayedVideo=null;
+          updateMix();
+        }
+      });
+      frame.addEventListener('load',()=>{
+        let doc=null;
+        try{doc=frame.contentDocument;}catch(_){}
+        if(!doc)return;
+        try{setPage(frame.contentWindow.location.pathname.split('/').pop());}catch(_){}
+        const envelope=doc.getElementById('openEnvelope');
+        const tap=doc.getElementById('tapLabel');
+        // Same-origin direct listeners work on hosted sites and carry user activation.
+        if(envelope)envelope.addEventListener('click',openLetter);
+        if(tap)tap.addEventListener('click',openLetter);
+        const videos=Array.from(doc.querySelectorAll('video'));
+        videos.forEach(v=>{
+          v.addEventListener('play',()=>{video=v;updateMix();});
+          v.addEventListener('pause',()=>{if(video===v)video=null;updateMix();});
+          v.addEventListener('ended',()=>{if(video===v)video=null;updateMix();});
+          v.addEventListener('volumechange',updateMix);
+          if(!v.paused && !v.ended)video=v;
+        });
+        updateMix();
+      });
+      // Safari may ignore the preload hint, but other browsers can buffer before
+      // the user opens the letter; playback still requires the envelope tap.
+      try { decks[0].audio.load(); } catch (_) {}
+      updateButton();
+    })();
+  </script>
+</body>
+</html>
