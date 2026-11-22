@@ -40,6 +40,11 @@
     @media(max-width:810px){.chapters{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:540px){.chapters{grid-template-columns:1fr;gap:13px}.container{width:min(92%,420px);padding:70px 0 70px}.chapter{min-height:184px;padding:23px}.name{font-size:39px}.closing{margin-top:45px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}.hero,.chapter{opacity:1;transform:none}}
+
+    .celebration-canvas{position:fixed;inset:0;pointer-events:none;z-index:18;opacity:1;transition:opacity 1.3s ease}
+    .celebration-canvas.fade{opacity:0}
+    .celebration-glow{position:fixed;inset:0;pointer-events:none;z-index:17;opacity:0;background:radial-gradient(circle at 50% 18%, rgba(255,224,174,.16), transparent 40%), radial-gradient(circle at 20% 32%, rgba(255,166,120,.10), transparent 28%), radial-gradient(circle at 78% 26%, rgba(255,208,155,.08), transparent 25%);animation:glowPulse 3.8s ease-out forwards}
+    @keyframes glowPulse{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
   </style>
   <script>
     // Only direct GitHub Pages visits are redirected; iframe chapters work normally.
@@ -69,6 +74,10 @@
     <footer class="closing">Happy Birthday, my love.</footer>
   </main>
   <div class="outro-curtain" id="curtain" aria-hidden="true"></div>
+
+  <canvas class="celebration-canvas" id="celebrationCanvas" aria-hidden="true"></canvas>
+  <div class="celebration-glow" aria-hidden="true"></div>
+
   <script>
     (()=>{
       const curtain=document.getElementById('curtain');
@@ -81,6 +90,127 @@
       }));
     })();
   </script>
+
+  <script>
+    (()=>{
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) return;
+      const canvas = document.getElementById('celebrationCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let w=0,h=0,dpr=Math.min(window.devicePixelRatio||1,2);
+      const bursts=[];
+      const confetti=[];
+      const palette=['#f8e2b4','#f3c989','#e8a8a0','#fff3df','#dcb07a'];
+      function resize(){
+        w=window.innerWidth; h=window.innerHeight;
+        canvas.width=Math.round(w*dpr); canvas.height=Math.round(h*dpr);
+        canvas.style.width=w+'px'; canvas.style.height=h+'px';
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+      }
+      resize();
+      addEventListener('resize', resize, {passive:true});
+      function makeBurst(x,y,force=1){
+        const count = 32 + Math.floor(Math.random()*22*force);
+        const ring=[];
+        for(let i=0;i<count;i++){
+          const angle = (Math.PI*2*i)/count + Math.random()*0.26;
+          const speed = (1.6 + Math.random()*2.8) * force;
+          ring.push({
+            x,y,
+            vx:Math.cos(angle)*speed,
+            vy:Math.sin(angle)*speed,
+            life:54 + Math.random()*22,
+            age:0,
+            size:1.4 + Math.random()*2.8,
+            color:palette[(Math.random()*palette.length)|0],
+            gravity:.026 + Math.random()*.02
+          });
+        }
+        bursts.push(ring);
+      }
+      function makeConfetti(amount=120){
+        for(let i=0;i<amount;i++){
+          confetti.push({
+            x:Math.random()*w,
+            y:-20 - Math.random()*h*.25,
+            vx:(Math.random()-.5)*1.2,
+            vy:1.8 + Math.random()*2.4,
+            size:5 + Math.random()*7,
+            rot:Math.random()*Math.PI,
+            vr:(Math.random()-.5)*.18,
+            sway:Math.random()*Math.PI*2,
+            color:palette[(Math.random()*palette.length)|0],
+            life:190 + Math.random()*70
+          });
+        }
+      }
+      makeBurst(w*.24, h*.22, 1.15);
+      makeBurst(w*.74, h*.20, 1.25);
+      setTimeout(()=>makeBurst(w*.50, h*.16, 1.35), 420);
+      setTimeout(()=>makeBurst(w*.16, h*.34, 1.0), 900);
+      setTimeout(()=>makeBurst(w*.84, h*.30, 1.0), 1250);
+      setTimeout(()=>makeBurst(w*.58, h*.27, 1.1), 1650);
+      makeConfetti(140);
+      let start = performance.now();
+      let fading = false;
+      function drawParticle(p){
+        const alpha = Math.max(0,1-p.age/p.life);
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.globalAlpha = alpha*.20;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.size*3.2,0,Math.PI*2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+      function frame(now){
+        ctx.clearRect(0,0,w,h);
+        bursts.forEach((ring,ri)=>{
+          for(let i=ring.length-1;i>=0;i--){
+            const p=ring[i];
+            p.age += 1;
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= .992; p.vy = p.vy*.992 + p.gravity;
+            drawParticle(p);
+            if(p.age>=p.life) ring.splice(i,1);
+          }
+          if(!ring.length) bursts.splice(ri,1);
+        });
+        for(let i=confetti.length-1;i>=0;i--){
+          const c=confetti[i];
+          c.life -= 1;
+          c.sway += .06;
+          c.x += c.vx + Math.sin(c.sway)*.5;
+          c.y += c.vy;
+          c.rot += c.vr;
+          ctx.save();
+          ctx.translate(c.x,c.y);
+          ctx.rotate(c.rot);
+          ctx.globalAlpha = Math.max(0, Math.min(1, c.life/60));
+          ctx.fillStyle = c.color;
+          ctx.fillRect(-c.size*.45,-c.size*.25,c.size*.9,c.size*.5);
+          ctx.restore();
+          if(c.y>h+30 || c.life<=0) confetti.splice(i,1);
+        }
+        ctx.globalAlpha = 1;
+        if(!fading && now-start>5200){
+          fading = true;
+          canvas.classList.add('fade');
+        }
+        if(now-start<6800 || bursts.length || confetti.length){
+          requestAnimationFrame(frame);
+        } else {
+          canvas.remove();
+        }
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
+
   <script>
     // Music controls stay in index.html, so the soundtrack can survive chapter changes.
     (() => {
