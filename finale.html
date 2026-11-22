@@ -37,8 +37,10 @@
     .play{margin-top:22px;padding:14px 25px;border:1px solid #c9a57e;color:#f5e9d5;background:#3b2a20e0;font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:background .25s ease}
     .play:hover{background:#644631}
     .play[hidden]{display:none}
-    video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050505;opacity:0;transition:opacity .7s ease;z-index:3}
-    video.playing{opacity:1}
+    .video-fallback{display:none;margin-top:13px;color:#d7bb93;font-size:11px;letter-spacing:.03em;text-decoration:underline;text-underline-offset:4px}
+    .video-fallback.show{display:inline-block}
+    video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050505;opacity:0;pointer-events:none;transition:opacity .7s ease;z-index:3}
+    video.playing{opacity:1;pointer-events:auto}
     .chapter-link{border:0;background:none;text-decoration:none;color:#dbc097;text-transform:uppercase;font-size:10px;letter-spacing:.21em;padding:13px 18px;cursor:pointer;transition:color .25s}
     .chapter-link:hover{color:#fff1dc}
     .curtain{position:fixed;inset:0;z-index:40;background:#08090b;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1.45s ease,visibility 1.45s}
@@ -67,7 +69,8 @@
         <span class="line" aria-hidden="true"></span>
         <p id="filmText">One final surprise.</p>
         <span id="filmHint">A little message, made just for you.</span>
-        <div><button class="play" id="play" type="button" hidden>Play My Message ▶</button></div>
+        <div><button class="play" id="play" type="button">Play My Message ▶</button></div>
+        <a class="video-fallback" id="videoFallback" href="final.mp4" target="_blank" rel="noopener">Open video directly</a>
       </div>
       <!-- Put final.mp4 in the same folder as this HTML page when it is ready. -->
       <video id="film" src="final.mp4" preload="metadata" playsinline controls aria-label="A personal birthday video message from Kerem"></video>
@@ -84,6 +87,7 @@
       const play=document.getElementById('play');
       const filmText=document.getElementById('filmText');
       const filmHint=document.getElementById('filmHint');
+      const videoFallback=document.getElementById('videoFallback');
       const explore=document.getElementById('explore');
       const curtain=document.getElementById('curtain');
       const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -94,23 +98,56 @@
         curtain.classList.add('closing');
         setTimeout(()=>location.assign('memories.html'),reduced?100:1480);
       }
+      // Do not wait for loadedmetadata to show the play button: on GitHub Pages,
+      // MP4 metadata can take time to arrive, especially if it is at the end.
+      function showProblem(message) {
+        filmText.textContent='Your video is here.';
+        filmHint.textContent=message;
+        play.disabled=false;
+        play.textContent='Try Again ▶';
+        videoFallback.classList.add('show');
+      }
       video.addEventListener('loadedmetadata',()=>{
-        filmText.textContent='A message from Kerem.';
-        filmHint.textContent='Press play whenever you are ready.';
-        play.hidden=false;
+        if(!video.classList.contains('playing')){
+          filmText.textContent='A message from Kerem.';
+          filmHint.textContent='Press play whenever you are ready.';
+        }
       });
       video.addEventListener('error',()=>{
-        play.hidden=true;
-        filmText.textContent='One final surprise…';
-        filmHint.textContent='Coming soon. The story is already yours to revisit.';
+        const code=video.error?.code;
+        showProblem(code===4
+          ? 'This video format may not be supported by your browser.'
+          : 'The video could not be loaded. Please try again.');
+      });
+      video.addEventListener('waiting',()=>{
+        if(video.classList.contains('playing')) return;
+        filmHint.textContent='Loading your video…';
       });
       play.addEventListener('click',async()=>{
-        try{
+        play.disabled=true;
+        filmHint.textContent='Loading your video…';
+        const loadingNotice=setTimeout(()=>{
+          if(!video.classList.contains('playing')) {
+            filmHint.textContent='Still loading? You can open the video directly below.';
+            videoFallback.classList.add('show');
+          }
+        },6000);
+        try {
+          // A failed media element can be retried after requesting the source again.
+          if(video.error) video.load();
           video.muted=false;
           await video.play();
+          clearTimeout(loadingNotice);
           video.classList.add('playing');
           placeholder.classList.add('hide');
-        }catch(e){filmHint.textContent='Use the video controls to play the message.';video.classList.add('playing')}
+        } catch(e) {
+          clearTimeout(loadingNotice);
+          video.classList.remove('playing');
+          showProblem('Playback failed. Try again or open the video directly.');
+          placeholder.classList.remove('hide');
+        } finally {
+          play.disabled=false;
+        }
       });
       video.addEventListener('ended',()=>setTimeout(navigate,reduced?120:1300));
       explore.addEventListener('click',e=>{e.preventDefault();video.pause();navigate()});
